@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>普普風 HTML 分享站</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 QR Code 生成函式庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Anton&display=swap" rel="stylesheet">
+    <style>
+        /* 自定義普普藝術風格 */
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F3F4F6; /* 淺灰色背景 */
+            background-image: radial-gradient(#4f46e5 10%, transparent 11%),
+                              radial-gradient(#4f46e5 10%, transparent 11%);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+        }
+        .font-anton {
+            font-family: 'Anton', sans-serif;
+        }
+        .pop-shadow {
+            box-shadow: 8px 8px 0px rgba(0, 0, 0, 1);
+        }
+        .pop-shadow-sm {
+            box-shadow: 4px 4px 0px rgba(0, 0, 0, 1);
+        }
+        .pop-button {
+            transition: all 0.15s ease-out;
+        }
+        .pop-button:hover {
+            transform: translate(4px, 4px);
+            box-shadow: none;
+        }
+        .pop-button:active {
+            transform: translate(6px, 6px);
+            box-shadow: none;
+        }
+        .card {
+            transition: all 0.2s ease-out;
+            position: relative;
+        }
+        .card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 12px 12px 0px rgba(0, 0, 0, 1);
+        }
+        /* QR Code 容器樣式 */
+        #qrcode-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            background: white;
+            border: 4px solid black;
+            margin-bottom: 1.5rem;
+        }
+        #qrcode-container img {
+            display: block;
+            margin: auto;
+        }
+        .delete-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: red;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid black;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .card:hover .delete-btn {
+            opacity: 1;
+        }
+        /* Tab 樣式 */
+        .tab-btn-active {
+            background-color: #facc15; /* yellow-400 */
+            border-width: 2px 2px 0 2px;
+            border-color: black;
+            border-radius: 0.5rem 0.5rem 0 0;
+            transform: translateY(2px);
+        }
+        .tab-btn-inactive {
+             background-color: #e5e7eb; /* gray-200 */
+             color: #4b5563; /* gray-600 */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 主容器 -->
+    <div id="main-app" class="container mx-auto p-4 md:p-8 max-w-5xl">
+        
+        <header class="relative bg-yellow-300 border-4 border-black p-6 mb-8 pop-shadow">
+            <h1 class="font-anton text-4xl md:text-6xl text-center text-black tracking-wider">POP HTML SHARE</h1>
+            <p class="text-center text-black mt-2">普普風 HTML 分享站</p>
+            <button id="helpBtn" class="absolute top-2 right-2 text-4xl hover:scale-110 transition-transform">❓</button>
+        </header>
+
+        <!-- 上傳區塊 (已更新為 Tab 介面) -->
+        <div id="upload-section" class="bg-white border-4 border-black p-6 mb-8 pop-shadow">
+            <h2 class="font-anton text-2xl text-black mb-4">1. 新增你的 HTML 圖卡</h2>
+
+            <!-- Tab Navigation -->
+            <div class="flex border-b-2 border-black">
+                <button id="tab-file-btn" class="tab-btn-active py-2 px-6 font-bold">從檔案上傳</button>
+                <button id="tab-code-btn" class="tab-btn-inactive py-2 px-6 font-bold">直接貼上程式碼</button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="pt-6">
+                <!-- 檔案上傳內容 -->
+                <div id="tab-file-content">
+                    <label for="htmlFile" class="block mb-1 font-bold text-sm">選擇檔案</label>
+                    <input type="file" id="htmlFile" accept=".html" class="w-full text-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-2 file:border-black file:text-sm file:font-semibold file:bg-pink-400 file:text-black hover:file:bg-pink-500">
+                </div>
+                <!-- 程式碼貼上內容 -->
+                <div id="tab-code-content" class="hidden">
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label for="htmlFileName" class="block mb-1 font-bold text-sm">檔案名稱 (必填)</label>
+                            <input type="text" id="htmlFileName" placeholder="例如: my-cool-game.html" class="w-full p-2 border-2 border-black rounded-lg">
+                        </div>
+                        <div>
+                            <label for="htmlCode" class="block mb-1 font-bold text-sm">貼上 HTML 程式碼 (必填)</label>
+                            <textarea id="htmlCode" rows="6" placeholder="<!DOCTYPE html>..." class="w-full p-2 border-2 border-black rounded-lg font-mono text-sm"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 共用設定 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start mt-4 border-t-2 border-black pt-6">
+                <div>
+                    <label for="customId" class="block mb-1 font-bold text-sm">自訂ID (選填，僅限英文/數字)</label>
+                    <input type="text" id="customId" placeholder="例如: my-awesome-page" class="w-full p-2 border-2 border-black rounded-lg">
+                </div>
+                <div>
+                    <label for="htmlDescription" class="block mb-1 font-bold text-sm">程式說明 (選填)</label>
+                    <input type="text" id="htmlDescription" placeholder="例如: 這是一個OOXX的小遊戲" class="w-full p-2 border-2 border-black rounded-lg">
+                </div>
+            </div>
+
+            <button id="uploadBtn" class="mt-6 w-full pop-button pop-shadow-sm bg-blue-500 text-white font-bold py-3 px-8 border-2 border-black rounded-lg text-lg">上傳</button>
+            <div id="status" class="mt-4 text-center font-bold"></div>
+        </div>
+
+
+        <div id="card-list-section">
+            <h2 class="font-anton text-2xl text-black mb-4 bg-white border-4 border-black p-4 pop-shadow inline-block">2. 點擊圖卡分享或管理</h2>
+            <div id="cardContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-4">
+                <!-- 圖卡將會動態生成於此 -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 分享彈出視窗 -->
+    <div id="shareModal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-pink-300 w-full max-w-md p-8 border-8 border-black rounded-lg pop-shadow relative">
+            <button id="closeShareModalBtn" class="absolute top-2 right-4 text-4xl font-bold hover:text-red-500">&times;</button>
+            <h2 id="shareModalTitle" class="font-anton text-2xl mb-4 text-black text-center truncate">分享網頁</h2>
+            <div id="qrcode-container"></div>
+            <div class="relative mb-4">
+                <input type="text" id="shareUrl" readonly class="w-full p-3 border-4 border-black rounded-lg bg-white text-sm">
+                <button id="copyUrlBtn" class="absolute right-0 top-0 h-full px-4 bg-yellow-400 border-l-4 border-black text-black font-bold hover:bg-yellow-500">複製</button>
+            </div>
+            <a id="openLinkBtn" href="#" target="_blank" class="block w-full text-center pop-button pop-shadow-sm bg-green-500 text-white font-bold py-3 px-8 border-2 border-black rounded-lg text-lg">在新視窗開啟</a>
+            <p id="copyStatus" class="text-center text-sm font-bold text-green-700 h-4 mt-2"></p>
+        </div>
+    </div>
+
+    <!-- 刪除確認視窗 -->
+    <div id="deleteConfirmModal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm p-8 border-8 border-red-500 rounded-lg pop-shadow relative">
+            <h2 class="font-anton text-2xl mb-4 text-black text-center">確認刪除？</h2>
+            <p id="deleteConfirmText" class="text-center mb-6">您確定要刪除這個檔案嗎？此操作無法復原。</p>
+            <div class="flex justify-around gap-4">
+                <button id="cancelDeleteBtn" class="w-full pop-button pop-shadow-sm bg-gray-300 font-bold py-2 px-6 border-2 border-black rounded-lg">取消</button>
+                <button id="confirmDeleteBtn" class="w-full pop-button pop-shadow-sm bg-red-500 text-white font-bold py-2 px-6 border-2 border-black rounded-lg">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 說明彈出視窗 -->
+    <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto p-8 border-8 border-yellow-300 rounded-lg pop-shadow relative">
+            <button id="closeModalBtn" class="absolute top-4 right-4 text-4xl font-bold hover:text-red-500">&times;</button>
+            <h2 class="font-anton text-3xl mb-4 text-blue-600">設定教學</h2>
+            <p class="mb-4">請依照以下步驟設定後端資料庫。<strong>(注意：程式碼已更新，請使用最新版本)</strong></p>
+            
+            <div class="space-y-6">
+                <!-- 教學步驟維持不變 -->
+                <div>
+                    <h3 class="font-bold text-xl mb-2">步驟一：建立 Google 試算表</h3>
+                    <p>在你的 Google Drive 中建立一個新的試算表，並將它的名稱命名為「HTML 分享站」。這個試算表將用來儲存你上傳的網頁內容。</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-xl mb-2">步驟二：開啟 Apps Script 並貼上程式碼</h3>
+                    <p>1. 在剛剛建立的 Google 試算表中，點選上方選單的<strong>「擴充功能」</strong> -> <strong>「Apps Script」</strong>。</p>
+                    <p>2. 刪除 Apps Script 編輯器中所有預設的程式碼。</p>
+                    <p>3. 複製並貼上<strong>下方提供的最新版程式碼</strong>到編輯器中。</p>
+                    <div class="bg-gray-800 text-white p-4 rounded-lg my-2">
+<pre><code class="text-sm break-words whitespace-pre-wrap">
+// GAS 程式碼開始 (v5 - 新增說明欄位)
+const SHEET_NAME = "上傳的網頁";
+const HEADERS = ["ID", "檔案名稱", "HTML內容", "上傳時間", "說明"];
+
+function getSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+    sheet.appendRow(HEADERS);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1, 150);
+    sheet.setColumnWidth(2, 200);
+    sheet.setColumnWidth(3, 100);
+    sheet.setColumnWidth(4, 200);
+    sheet.setColumnWidth(5, 300); // 新增說明欄的寬度
+  }
+  return sheet;
+}
+
+function handleResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doGet(e) {
+  try {
+    const action = e.parameter.action;
+    const sheet = getSheet();
+
+    if (action === "list") {
+      const data = sheet.getDataRange().getValues();
+      const files = data.slice(1).map(row => ({ 
+        id: row[0], 
+        filename: row[1],
+        description: row[4] || '' // 回傳說明，如果為空則回傳空字串
+      }));
+      return handleResponse({ status: "success", data: files.reverse() });
+    }
+
+    if (action === "read") {
+      const id = e.parameter.id;
+      if (!id) return ContentService.createTextOutput("Error: Missing ID.");
+      
+      const data = sheet.getDataRange().getValues();
+      const row = data.find(r => r[0] == id);
+      
+      if (row) {
+        return ContentService.createTextOutput(row[2]).setMimeType(ContentService.MimeType.JAVASCRIPT);
+      } else {
+        return ContentService.createTextOutput("Error: Page not found.");
+      }
+    }
+    
+    return ContentService.createTextOutput("Error: Invalid action.");
+  } catch (error) {
+    return handleResponse({ status: "error", message: error.message });
+  }
+}
+
+function doPost(e) {
+  try {
+    const sheet = getSheet();
+    const postData = JSON.parse(e.postData.contents);
+    const action = postData.action;
+
+    if (action === 'upload') {
+      const filename = postData.filename;
+      const content = postData.content;
+      let customId = postData.id;
+      const description = postData.description || ""; // 取得說明，若無則為空字串
+      
+      // 驗證自訂ID格式
+      if (customId && !/^[a-zA-Z0-9-]+$/.test(customId)) {
+        return handleResponse({ status: "error", message: "自訂ID只能包含英文、數字和連字號 (-)" });
+      }
+
+      // 檢查ID是否重複
+      if (customId) {
+        const lastRow = sheet.getLastRow();
+        if (lastRow > 1) {
+          const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues().flat();
+          if (ids.includes(customId)) {
+            return handleResponse({ status: "error", message: `ID "${customId}" 已經存在，請換一個。` });
+          }
+        }
+      }
+      
+      const id = customId || Utilities.getUuid();
+      const timestamp = new Date();
+      sheet.appendRow([id, filename, content, timestamp, description]); // 將說明寫入試算表
+      return handleResponse({ status: "success", id: id, filename: filename });
+    }
+
+    if (action === 'delete') {
+      const idToDelete = postData.id;
+      if (!idToDelete) return handleResponse({ status: "error", message: "缺少ID" });
+      
+      const data = sheet.getDataRange().getValues();
+      const rowIndex = data.findIndex(row => row[0] == idToDelete);
+      
+      if (rowIndex > 0) {
+        sheet.deleteRow(rowIndex + 1);
+        return handleResponse({ status: "success", message: "刪除成功" });
+      } else {
+        return handleResponse({ status: "error", message: "找不到要刪除的項目" });
+      }
+    }
+    
+    return handleResponse({ status: "error", message: "無效的操作" });
+
+  } catch (error) {
+    return handleResponse({ status: "error", message: error.message });
+  }
+}
+// GAS 程式碼結束
+</code></pre>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-xl mb-2">步驟三：部署為網頁應用程式</h3>
+                    <p>1. 在 Apps Script 編輯器中，點選右上角的<strong>「部署」</strong> -> <strong>「新增部署作業」</strong>。</p>
+                    <p>2. 在「選取類型」中，選擇<strong>「網頁應用程式」</strong>。</p>
+                    <p>3. 在「執行身分」中，選擇<strong>「我」</strong>。</p>
+                    <p>4. 在「有權存取者」中，選擇<strong>「任何人」</strong>。</p>
+                    <p>5. 點擊<strong>「部署」</strong>。</p>
+                    <p>6. 部署完成後，會跳出一個視窗，請複製<strong>「網頁應用程式網址」</strong>。</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-xl mb-2">步驟四：將網址貼到 HTML 檔案中</h3>
+                    <p>最後，將剛剛複製的網頁應用程式網址，貼到你目前 HTML 檔案中的 <code>GAS_URL</code> 變數處。</p>
+                    <pre class="bg-gray-200 p-2 rounded-lg text-sm"><code>const GAS_URL = '貼上您複製的網址在這裡';</code></pre>
+                    <p>完成後儲存檔案，你的 HTML 分享站就可以正常運作了！</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center p-4 mt-8 text-sm text-gray-600">
+        Made by <a href="https://kentxchang.blogspot.tw" target="_blank" rel="noopener noreferrer" class="underline hover:text-blue-600 font-bold">阿剛老師</a>
+    </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // ▼▼▼▼▼ 請將您部署的 Google Apps Script 網頁應用程式網址貼在這裡 ▼▼▼▼▼
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzsLsM2_0_yQ5jqY2lhb3ldLKb-GkoDDECjSQ3KyfxEP9yLIJ4xFTVv5xD5UwcidCrRjg/exec';
+        // ▲▲▲▲▲ 請將您部署的 Google Apps Script 網頁應用程式網址貼在這裡 ▲▲▲▲▲
+
+        // --- 全局變數 ---
+        let fileToDelete = null;
+        let currentUploadMode = 'file'; // 'file' or 'code'
+
+        // --- 主應用元素 ---
+        const mainApp = document.getElementById('main-app');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const customIdInput = document.getElementById('customId');
+        const htmlDescriptionInput = document.getElementById('htmlDescription');
+        const statusDiv = document.getElementById('status');
+        const cardContainer = document.getElementById('cardContainer');
+        
+        // --- Tab 相關元素 ---
+        const tabFileBtn = document.getElementById('tab-file-btn');
+        const tabCodeBtn = document.getElementById('tab-code-btn');
+        const tabFileContent = document.getElementById('tab-file-content');
+        const tabCodeContent = document.getElementById('tab-code-content');
+        const htmlFileInput = document.getElementById('htmlFile');
+        const htmlCodeInput = document.getElementById('htmlCode');
+        const htmlFileNameInput = document.getElementById('htmlFileName');
+
+        // --- 視窗元素 ---
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModal = document.getElementById('helpModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const shareModal = document.getElementById('shareModal');
+        const closeShareModalBtn = document.getElementById('closeShareModalBtn');
+        const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+        // --- 分享視窗內部元素 ---
+        const shareModalTitle = document.getElementById('shareModalTitle');
+        const qrcodeContainer = document.getElementById('qrcode-container');
+        const shareUrlInput = document.getElementById('shareUrl');
+        const copyUrlBtn = document.getElementById('copyUrlBtn');
+        const openLinkBtn = document.getElementById('openLinkBtn');
+        const copyStatus = document.getElementById('copyStatus');
+        
+        // --- 刪除確認視窗內部元素 ---
+        const deleteConfirmText = document.getElementById('deleteConfirmText');
+        
+        // --- 頁面初始化 ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageId = urlParams.get('id');
+
+        if (pageId) {
+            loadPageContent(pageId);
+        } else {
+            mainApp.style.display = 'block';
+            loadCards();
+        }
+
+        // --- 函式定義 ---
+
+        // 載入指定 ID 的 HTML 頁面
+        async function loadPageContent(id) {
+            document.body.innerHTML = '<div class="font-anton text-2xl text-center p-10">LOADING...</div>';
+            try {
+                const response = await fetch(`${GAS_URL}?action=read&id=${id}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const htmlContent = await response.text();
+                if (htmlContent.startsWith("Error:")) throw new Error(htmlContent);
+                document.open();
+                document.write(htmlContent);
+                document.close();
+            } catch (error) {
+                document.body.innerHTML = `<div class="p-8 bg-red-200 border-4 border-red-800 text-red-900">
+                    <h1 class="font-anton text-4xl">載入錯誤</h1>
+                    <p class="mt-4">無法載入頁面內容。請檢查您的網址是否正確，或網路連線是否正常。</p>
+                    <p class="mt-2">錯誤訊息: ${error.message}</p>
+                    <a href="${window.location.pathname}" class="inline-block mt-4 bg-blue-500 text-white p-2 rounded">返回首頁</a>
+                </div>`;
+            }
+        }
+
+        // 從後端載入所有圖卡
+        async function loadCards() {
+            cardContainer.innerHTML = '<p class="text-center col-span-full">讀取中...</p>';
+            try {
+                const response = await fetch(`${GAS_URL}?action=list`);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    cardContainer.innerHTML = '';
+                    if (result.data.length === 0) {
+                        cardContainer.innerHTML = '<p class="text-center col-span-full text-gray-500">目前沒有任何上傳的網頁。</p>';
+                    } else {
+                        result.data.forEach(file => {
+                            const card = document.createElement('div');
+                            card.className = 'card block bg-white p-6 border-4 border-black rounded-lg pop-shadow cursor-pointer';
+                            card.innerHTML = `
+                                <button class="delete-btn" title="刪除檔案">&times;</button>
+                                <div class="card-content">
+                                    <h3 class="font-bold text-lg truncate">${file.filename}</h3>
+                                    <p class="text-sm text-gray-700 mt-2 h-10 overflow-hidden">${file.description || '沒有提供說明'}</p>
+                                    <p class="text-xs text-gray-500 mt-2 break-all">ID: ${file.id}</p>
+                                </div>
+                            `;
+                            card.querySelector('.card-content').addEventListener('click', () => showShareModal(file.id, file.filename));
+                            card.querySelector('.delete-btn').addEventListener('click', () => showDeleteConfirm(file.id, file.filename));
+                            cardContainer.appendChild(card);
+                        });
+                    }
+                } else {
+                    throw new Error(result.message || '無法讀取列表。');
+                }
+            } catch (error) {
+                cardContainer.innerHTML = `<p class="text-center col-span-full text-red-600 font-bold">
+                    無法載入列表。<br>
+                    請確認您已完成「❓」說明中的所有設定，並將正確的 GAS 網址貼入程式碼中。
+                </p>`;
+            }
+        }
+
+        // 顯示分享視窗
+        function showShareModal(id, filename) {
+            const url = `${window.location.origin}${window.location.pathname}?id=${id}`;
+            shareModalTitle.textContent = filename;
+            shareUrlInput.value = url;
+            openLinkBtn.href = url;
+            
+            qrcodeContainer.innerHTML = '';
+            new QRCode(qrcodeContainer, { text: url, width: 200, height: 200 });
+
+            copyStatus.textContent = '';
+            shareModal.classList.remove('hidden');
+        }
+
+        // 顯示刪除確認視窗
+        function showDeleteConfirm(id, filename) {
+            fileToDelete = { id, filename };
+            deleteConfirmText.innerHTML = `您確定要刪除檔案 "<strong class="text-red-700">${filename}</strong>" 嗎？此操作無法復原。`;
+            deleteConfirmModal.classList.remove('hidden');
+        }
+
+        // 執行刪除
+        async function handleDelete() {
+            if (!fileToDelete) return;
+            showStatus('刪除中...', 'loading');
+            try {
+                // 使用 no-cors 模式，因為 GAS 回應的 redirect 可能會被 CORS 阻擋
+                // 我們不需要讀取回應，只需要確定請求已發送
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'delete', id: fileToDelete.id })
+                });
+                // 即使是 no-cors，請求也會送達，這裡我們樂觀地更新 UI
+                showStatus(`檔案 "${fileToDelete.filename}" 已刪除。`, 'success');
+                loadCards(); 
+            } catch (error) {
+                // no-cors 模式下的 fetch 不會拋出網路錯誤，但為了完整性保留
+                showStatus(`刪除請求發送失敗: ${error.message}`, 'error');
+            } finally {
+                deleteConfirmModal.classList.add('hidden');
+                fileToDelete = null;
+            }
+        }
+        
+        // 切換上傳模式
+        function switchTab(mode) {
+            currentUploadMode = mode;
+            if (mode === 'file') {
+                tabFileBtn.classList.remove('tab-btn-inactive');
+                tabFileBtn.classList.add('tab-btn-active');
+                tabCodeBtn.classList.remove('tab-btn-active');
+                tabCodeBtn.classList.add('tab-btn-inactive');
+                tabFileContent.classList.remove('hidden');
+                tabCodeContent.classList.add('hidden');
+            } else { // code mode
+                tabCodeBtn.classList.remove('tab-btn-inactive');
+                tabCodeBtn.classList.add('tab-btn-active');
+                tabFileBtn.classList.remove('tab-btn-active');
+                tabFileBtn.classList.add('tab-btn-inactive');
+                tabCodeContent.classList.remove('hidden');
+                tabFileContent.classList.add('hidden');
+            }
+            statusDiv.textContent = ''; // 切換時清空狀態
+        }
+
+        // 核心上傳邏輯
+        async function handleUpload() {
+            const customId = customIdInput.value.trim();
+            const description = htmlDescriptionInput.value.trim();
+
+            if (customId && !/^[a-zA-Z0-9-]+$/.test(customId)) {
+                showStatus('自訂ID只能包含英文、數字和連字號 (-)', 'error');
+                return;
+            }
+            
+            if (currentUploadMode === 'file') {
+                const file = htmlFileInput.files[0];
+                if (!file) {
+                    showStatus('請先選擇一個 HTML 檔案！', 'error');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    uploadContent(content, file.name, customId, description);
+                };
+                reader.readAsText(file);
+
+            } else { // 'code' mode
+                const filename = htmlFileNameInput.value.trim();
+                const content = htmlCodeInput.value.trim();
+                if (!filename || !content) {
+                    showStatus('檔案名稱和 HTML 程式碼為必填項目！', 'error');
+                    return;
+                }
+                uploadContent(content, filename, customId, description);
+            }
+        }
+
+        // 執行上傳到後端
+        async function uploadContent(content, filename, id, description) {
+             showStatus('上傳中，請稍候...', 'loading');
+             try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'upload', filename, content, id, description })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showStatus(`檔案 "${result.filename}" 上傳成功！`, 'success');
+                    // 清空所有輸入框
+                    htmlFileInput.value = '';
+                    customIdInput.value = '';
+                    htmlDescriptionInput.value = '';
+                    htmlCodeInput.value = '';
+                    htmlFileNameInput.value = '';
+                    loadCards();
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                showStatus(`上傳失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 顯示狀態訊息
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = 'mt-4 text-center font-bold ';
+            if (type === 'success') statusDiv.classList.add('text-green-600');
+            else if (type === 'error') statusDiv.classList.add('text-red-600');
+            else statusDiv.classList.add('text-blue-600');
+        }
+
+        // --- 事件監聽器 ---
+        
+        // Tab 切換
+        tabFileBtn.addEventListener('click', () => switchTab('file'));
+        tabCodeBtn.addEventListener('click', () => switchTab('code'));
+        
+        // 上傳按鈕
+        uploadBtn.addEventListener('click', handleUpload);
+
+        // 所有視窗的開關事件
+        helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+        closeShareModalBtn.addEventListener('click', () => shareModal.classList.add('hidden'));
+        cancelDeleteBtn.addEventListener('click', () => deleteConfirmModal.classList.add('hidden'));
+        confirmDeleteBtn.addEventListener('click', handleDelete);
+        
+        // 複製 URL
+        copyUrlBtn.addEventListener('click', () => {
+            shareUrlInput.select();
+            try {
+                // 新的 Clipboard API，更安全
+                navigator.clipboard.writeText(shareUrlInput.value).then(() => {
+                    copyStatus.textContent = '已成功複製！';
+                    setTimeout(() => copyStatus.textContent = '', 2000);
+                });
+            } catch (err) {
+                // 舊的 execCommand 作為備用
+                document.execCommand('copy');
+                copyStatus.textContent = '已成功複製！';
+                setTimeout(() => copyStatus.textContent = '', 2000);
+            }
+        });
+    });
+    </script>
+
+</body>
+</html>
